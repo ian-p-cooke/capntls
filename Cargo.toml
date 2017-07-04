@@ -1,0 +1,17 @@
+[package]
+name = "capntls"
+version = "0.1.0"
+authors = ["Ian P. Cooke <ipc@informatic.io>"]
+build = "build.rs"
+
+[build-dependencies]
+capnpc = "^0.8"
+
+[dependencies]
+futures = "*"
+tokio-core = "*"
+tokio-io = "*"
+native-tls = "*"
+tokio-tls = "*"
+capnp = "*"
+capnp-rpc = "^0.8"
