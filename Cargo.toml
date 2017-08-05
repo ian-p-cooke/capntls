@@ -1,6 +1,6 @@
 [package]
 name = "capntls"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Ian P. Cooke <ipc@informatic.io>"]
 build = "build.rs"
 
@@ -8,10 +8,16 @@ build = "build.rs"
 capnpc = "^0.8"
 
 [dependencies]
-futures = "*"
-tokio-core = "*"
-tokio-io = "*"
-native-tls = "*"
-tokio-tls = "*"
-capnp = "*"
+futures = "^0.1"
+tokio-core = "^0.1"
+tokio-io = "^0.1"
+native-tls = "^0.1"
+tokio-tls = "^0.1"
+capnp = "^0.8"
 capnp-rpc = "^0.8"
+
+[replace]
+"capnp-futures:0.1.1" = { git = "file:///Users/ipc/projects/capnp-futures-rs", branch = "async-write-dependency" }
+"capnp-rpc:0.8.2" = { git = "file:///Users/ipc/projects/capnp-rpc-rust", branch = "async-write-dependency" }
+"capnp:0.8.10" = { git = "file:///Users/ipc/projects/capnproto-rust", branch = "async-write-dependency" }
+

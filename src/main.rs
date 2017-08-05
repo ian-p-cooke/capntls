@@ -11,7 +11,7 @@ pub mod echo_capnp {
     include!(concat!(env!("OUT_DIR"), "/schema/echo_capnp.rs"));
 }
 
-use native_tls::{Pkcs12,Certificate};
+use native_tls::{Pkcs12, Certificate};
 use std::io::Read;
 
 fn load_pkcs12(filename: &str) -> Result<Pkcs12, ()> {
@@ -83,7 +83,9 @@ pub mod server {
         let tls_handshake = connections.map(|(socket, _addr)| {
             println!("connected");
             socket.set_nodelay(true).unwrap();
-            tls_acceptor.accept_async(socket).map_err(|e| {println!("error: {:?}", e)})
+            tls_acceptor
+                .accept_async(socket)
+                .map_err(|e| println!("error: {:?}", e))
         });
 
         let server = tls_handshake.map(|acceptor| {
@@ -102,18 +104,24 @@ pub mod server {
                 );
 
                 let rpc_system = RpcSystem::new(Box::new(network), Some(echo_server.client));
-                handle.spawn(rpc_system.map_err(|e| {
-                    println!("rpc error: {:?}", e)
-                }));
+                handle.spawn(
+                    rpc_system
+                        .map_err(|e| println!("rpc error: {:?}", e))
+                        .then(|_r| {
+                            println!("rpc system done");
+                            Ok(())
+                        }),
+                );
                 Ok(())
             })
         });
         core.run(server.for_each(|and_then| {
-            let next = and_then.map(|o| println!("o:{:?}",o)).map_err(|e| println!("e:{:?}", e));
+            let next = and_then
+                .map(|o| println!("o:{:?}", o))
+                .map_err(|e| println!("e:{:?}", e));
             handle.spawn(next);
             Ok(())
-        }
-        )).unwrap();
+        })).unwrap();
     }
 }
 
@@ -153,19 +161,17 @@ pub mod client {
         let socket = ::tokio_core::net::TcpStream::connect(&addr, &handle);
         let mut builder = TlsConnector::builder().unwrap();
         match builder.add_root_certificate(ca_cert) {
-            Ok(_) => {},
-            Err(e) => panic!("{:?}", e)
+            Ok(_) => {}
+            Err(e) => panic!("{:?}", e),
         }
         let cx = builder.build().unwrap();
         let tls_handshake = socket.and_then(|socket| {
             socket.set_nodelay(true).unwrap();
-            cx.connect_async("localhost", socket).map_err(|e| {
-                ::std::io::Error::new(::std::io::ErrorKind::Other, e)
-            })
+            cx.connect_async("localhost", socket)
+                .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))
         });
 
-        let stream = core.run(tls_handshake)
-            .unwrap();
+        let stream = core.run(tls_handshake).unwrap();
         let (reader, writer) = stream.split();
 
         let network = Box::new(twoparty::VatNetwork::new(
@@ -176,7 +182,18 @@ pub mod client {
         ));
         let mut rpc_system = RpcSystem::new(network, None);
         let echo_client: echo::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-        handle.spawn(rpc_system.map_err(|e| println!("rpc error: {:?}", e)));
+        let rpc_disconnector = rpc_system.disconnect();
+        let (rpc_done, rpc_result) = ::futures::oneshot::<Result<(),()>>();
+        handle.spawn(
+            rpc_system
+                .map_err(|e| {
+                    println!("rpc error: {:?}", e);
+                })
+                .then(|x| {
+                    rpc_done.send(x).unwrap();
+                    Ok(())
+                }),
+        );
 
         let mut request = echo_client.echo_request();
         request.get().set_input("hello");
@@ -185,6 +202,9 @@ pub mod client {
             println!("{}", output);
             Promise::ok(())
         })));
+
+        try!(core.run(rpc_disconnector));
+        try!(core.run(rpc_result)).unwrap();
         Ok(())
     }
 }
