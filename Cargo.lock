@@ -48,52 +48,38 @@ dependencies = [
 [[package]]
 name = "capnp"
 version = "0.8.10"
-source = "git+file:///Users/ipc/projects/capnproto-rust?branch=async-write-dependency#0d83118d5987fe089b77954b9e73506f40e8929d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "capnp"
-version = "0.8.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnp 0.8.10 (git+file:///Users/ipc/projects/capnproto-rust?branch=async-write-dependency)"
-
-[[package]]
 name = "capnp-futures"
 version = "0.1.1"
-source = "git+file:///Users/ipc/projects/capnp-futures-rs?branch=async-write-dependency#1e152d6877c6c9c7493df18420e16820ff48081e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "capnp 0.8.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-io 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "capnp-futures"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnp-futures 0.1.1 (git+file:///Users/ipc/projects/capnp-futures-rs?branch=async-write-dependency)"
 
 [[package]]
 name = "capnp-rpc"
 version = "0.8.2"
-source = "git+file:///Users/ipc/projects/capnp-rpc-rust?branch=async-write-dependency#fde79d8bb5fb6ac229aca6c7577ce6297c1afce8"
+source = "git+file:///Users/ipc/projects/capnp-rpc-rust?branch=get_disconnector#aacf556c1802f7b40535c92017d2edf1487d3b56"
 dependencies = [
  "capnp 0.8.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "capnp-futures 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "capnpc 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-io 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "capnp-rpc"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnp-rpc 0.8.2 (git+file:///Users/ipc/projects/capnp-rpc-rust?branch=async-write-dependency)"
+replace = "capnp-rpc 0.8.2 (git+file:///Users/ipc/projects/capnp-rpc-rust?branch=get_disconnector)"
 
 [[package]]
 name = "capnpc"
@@ -428,11 +414,9 @@ dependencies = [
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ff81738b726f5d099632ceaffe7fb65b90212e8dce59d518729e7e8634032d3d"
 "checksum bytes 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8b24f16593f445422331a5eed46b72f7f171f910fead4f2ea8f17e727e9c5c14"
-"checksum capnp 0.8.10 (git+file:///Users/ipc/projects/capnproto-rust?branch=async-write-dependency)" = "<none>"
 "checksum capnp 0.8.10 (registry+https://github.com/rust-lang/crates.io-index)" = "c42526d461a93d8a990f30ba51245b6b46c0ed1a761133d2e4fe5b47a9527a45"
-"checksum capnp-futures 0.1.1 (git+file:///Users/ipc/projects/capnp-futures-rs?branch=async-write-dependency)" = "<none>"
 "checksum capnp-futures 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1b12f9d23b322429af59176bf778d1ae46a4c5e55375818509f9c2f2a11bed7a"
-"checksum capnp-rpc 0.8.2 (git+file:///Users/ipc/projects/capnp-rpc-rust?branch=async-write-dependency)" = "<none>"
+"checksum capnp-rpc 0.8.2 (git+file:///Users/ipc/projects/capnp-rpc-rust?branch=get_disconnector)" = "<none>"
 "checksum capnp-rpc 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c118821bca80401500272ccbaf18e6e68ebe1ca4c40280effa2f8921693ce7ad"
 "checksum capnpc 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)" = "5eb630656e23f1316d88bad8be37047ba9c6fc89c3e9dbe060c1a91b229918e2"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
