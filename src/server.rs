@@ -1,4 +1,7 @@
 use std::sync::Arc;
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use futures::{Future, Stream};
 use tokio_io::AsyncRead;
@@ -10,7 +13,10 @@ use tokio_rustls::ServerConfigExt;
 
 use openssl::x509::X509;
 
-struct Echo;
+struct Echo
+{
+    email: Rc<RefCell<Option<String>>>,
+}
 
 impl echo::Server for Echo {
     fn echo(
@@ -19,7 +25,7 @@ impl echo::Server for Echo {
         mut results: echo::EchoResults,
     ) -> ::capnp::capability::Promise<(), ::capnp::Error> {
         let input = pry!(pry!(params.get()).get_input());
-        results.get().set_output(input);
+        results.get().set_output(&format!("{:?}:{}", *self.email.borrow(), input));
         ::capnp::capability::Promise::ok(())
     }
 }
@@ -42,7 +48,7 @@ pub fn main() {
         .expect("could not parse address");
     let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-    let echo_server = echo::ToClient::new(Echo {}).from_server::<::capnp_rpc::Server>();
+    //let echo_client = echo::ToClient::new(Echo { count: 0 }).from_server::<::capnp_rpc::Server>();
 
     let mut client_auth_roots = RootCertStore::empty();
     let roots = ::load_certs("test-ca/rsa/end.fullchain");
@@ -64,30 +70,29 @@ pub fn main() {
 
     let server = tls_handshake.map(|acceptor| {        
         let handle = handle.clone();
-        let echo_server = echo_server.clone();
-        acceptor.and_then(move |socket| {
-            let email = 
+        //let echo_client = echo_client.clone();
+        let email : Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
+        let echo = Echo { email: email.clone() };
+        let echo_client = echo::ToClient::new(echo).from_server::<::capnp_rpc::Server>();
+        acceptor.and_then(move |stream| {
             {                
-                let ( _, session ) = socket.get_ref();
-                let mut email : Option<String> = None;
+                let ( _, session ) = stream.get_ref();
                 if let Some(certs) = session.get_peer_certificates()                 {
                     for cert in certs {
                         let x509 = X509::from_der(&cert.0).unwrap();
                         if let Some(sans) = x509.subject_alt_names() {
                             for san in sans {
                                 if let Some(e) = san.email() {
-                                    email = Some(e.to_owned());
+                                    println!("email: {:?}", e);
+                                    *email.borrow_mut() = Some(e.to_owned());
                                     break;
                                 }
                             }
                         }
                     }
                 }
-                email
             };
-            println!("email: {:?}", email);
-
-            let (reader, writer) = socket.split();
+            let (reader, writer) = stream.split();
 
             let network = twoparty::VatNetwork::new(
                 reader,
@@ -96,7 +101,7 @@ pub fn main() {
                 Default::default(),
             );
 
-            let rpc_system = RpcSystem::new(Box::new(network), Some(echo_server.client));
+            let rpc_system = RpcSystem::new(Box::new(network), Some(echo_client.client));
             handle.spawn(rpc_system.map_err(|e| println!("{}", e)));
             Ok(())
         })
