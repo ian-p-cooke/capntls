@@ -1,5 +1,7 @@
-use std;
-use std::io::Read;
+use std::io::BufReader;
+use std::fs;
+use std::sync::Arc;
+
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use echo_capnp::echo;
 use capnp::capability::Promise;
@@ -7,17 +9,10 @@ use capnp::capability::Promise;
 use futures::Future;
 use tokio_io::AsyncRead;
 
-use native_tls::Certificate;
-use native_tls::TlsConnector;
-use tokio_tls::TlsConnectorExt;
+use rustls::ClientConfig;
+use tokio_rustls::ClientConfigExt;
 
-fn load_certificate(filename: &str) -> Result<Certificate, ()> {
-    let mut file = std::fs::File::open(filename).unwrap();
-    let mut bytes = vec![];
-    file.read_to_end(&mut bytes).unwrap();
-    let cert = Certificate::from_der(&bytes).unwrap();
-    Ok(cert)
-}
+extern crate webpki;
 
 pub fn main() {
     let args: Vec<String> = ::std::env::args().collect();
@@ -25,7 +20,6 @@ pub fn main() {
         println!("usage: {} client HOST:PORT", args[0]);
         return;
     }
-
     try_main(args).unwrap();
 }
 
@@ -39,19 +33,18 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         .next()
         .expect("could not parse address");
 
-    let ca_cert = load_certificate("certificate.der").unwrap();
+    let mut pem = BufReader::new(fs::File::open("test-ca/rsa/ca.cert").unwrap());
+    let mut config = ClientConfig::new();
+    config.root_store.add_pem_file(&mut pem).unwrap();
+    config.set_single_client_cert(::load_certs("test-ca/rsa/client.cert"), ::load_private_key("test-ca/rsa/client.key"));    
+    let config = Arc::new(config);
+
+    let domain = webpki::DNSNameRef::try_from_ascii_str("localhost").unwrap();
 
     let socket = ::tokio_core::net::TcpStream::connect(&addr, &handle);
-    let mut builder = TlsConnector::builder().unwrap();
-    match builder.add_root_certificate(ca_cert) {
-        Ok(_) => {}
-        Err(e) => panic!("{:?}", e),
-    }
-    let cx = builder.build().unwrap();
     let tls_handshake = socket.and_then(|socket| {
         socket.set_nodelay(true).unwrap();
-        cx.connect_async("localhost", socket)
-            .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))
+        config.connect_async(domain, socket)
     });
 
     let stream = core.run(tls_handshake).unwrap();

@@ -11,10 +11,9 @@ capnpc = "^0.8"
 futures = "^0.1"
 tokio-core = "^0.1"
 tokio-io = "^0.1"
-native-tls = "^0.1"
-tokio-tls = "^0.1"
+webpki = "0.18.0-alpha"
+rustls = "*"
+tokio-rustls = "*"
+openssl = { git = "https://github.com/ian-p-cooke/rust-openssl" }
 capnp = "^0.8"
-capnp-rpc = "^0.8"
-
-[replace]
-"capnp-rpc:0.8.2" = { git = "https://github.com/capnproto/capnp-rpc-rust.git" }
+capnp-rpc = { git = "https://github.com/capnproto/capnp-rpc-rust" }

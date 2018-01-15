@@ -1,21 +1,14 @@
-use std;
-use std::io::Read;
+use std::sync::Arc;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use futures::{Future, Stream};
 use tokio_io::AsyncRead;
 use echo_capnp::echo;
 
-use native_tls::Pkcs12;
-use native_tls::TlsAcceptor;
-use tokio_tls::TlsAcceptorExt;
+use rustls::{ ServerConfig, RootCertStore, Session };
+use rustls::AllowAnyAuthenticatedClient;
+use tokio_rustls::ServerConfigExt;
 
-fn load_pkcs12(filename: &str) -> Result<Pkcs12, ()> {
-    let mut file = std::fs::File::open(filename).unwrap();
-    let mut pkcs12 = vec![];
-    file.read_to_end(&mut pkcs12).unwrap();
-    let pkcs12 = Pkcs12::from_der(&pkcs12, "password").unwrap();
-    Ok(pkcs12)
-}
+use openssl::x509::X509;
 
 struct Echo;
 
@@ -49,24 +42,51 @@ pub fn main() {
         .expect("could not parse address");
     let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-    let echo_server = echo::ToClient::new(Echo).from_server::<::capnp_rpc::Server>();
+    let echo_server = echo::ToClient::new(Echo {}).from_server::<::capnp_rpc::Server>();
 
-    let tls_acceptor = TlsAcceptor::builder(load_pkcs12("certificate.pfx").unwrap())
-        .unwrap()
-        .build()
-        .unwrap();
+    let mut client_auth_roots = RootCertStore::empty();
+    let roots = ::load_certs("test-ca/rsa/end.fullchain");
+    for root in &roots {
+         client_auth_roots.add(&root).unwrap();
+    }
+    let client_auth = AllowAnyAuthenticatedClient::new(client_auth_roots);
+
+    let mut config = ServerConfig::new(client_auth);
+    config.set_single_cert(roots, ::load_private_key("test-ca/rsa/end.key"));
+    let config = Arc::new(config);
 
     let connections = socket.incoming();
 
     let tls_handshake = connections.map(|(socket, _addr)| {
         socket.set_nodelay(true).unwrap();
-        tls_acceptor.accept_async(socket)
+        config.accept_async(socket)
     });
 
-    let server = tls_handshake.map(|acceptor| {
+    let server = tls_handshake.map(|acceptor| {        
         let handle = handle.clone();
         let echo_server = echo_server.clone();
         acceptor.and_then(move |socket| {
+            let email = 
+            {                
+                let ( _, session ) = socket.get_ref();
+                let mut email : Option<String> = None;
+                if let Some(certs) = session.get_peer_certificates()                 {
+                    for cert in certs {
+                        let x509 = X509::from_der(&cert.0).unwrap();
+                        if let Some(sans) = x509.subject_alt_names() {
+                            for san in sans {
+                                if let Some(e) = san.email() {
+                                    email = Some(e.to_owned());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                email
+            };
+            println!("email: {:?}", email);
+
             let (reader, writer) = socket.split();
 
             let network = twoparty::VatNetwork::new(
