@@ -2,11 +2,11 @@ extern crate capnp;
 #[macro_use]
 extern crate capnp_rpc;
 extern crate futures;
+extern crate openssl;
+extern crate rustls;
 extern crate tokio_core;
 extern crate tokio_io;
-extern crate rustls;
 extern crate tokio_rustls;
-extern crate openssl;
 
 pub mod echo_capnp;
 mod server;
@@ -23,16 +23,14 @@ fn load_certs(filename: &str) -> Vec<rustls::Certificate> {
 
 fn load_private_key(filename: &str) -> rustls::PrivateKey {
     let rsa_keys = {
-        let keyfile = fs::File::open(filename)
-            .expect("cannot open private key file");
+        let keyfile = fs::File::open(filename).expect("cannot open private key file");
         let mut reader = BufReader::new(keyfile);
         rustls::internal::pemfile::rsa_private_keys(&mut reader)
             .expect("file contains invalid rsa private key")
     };
 
     let pkcs8_keys = {
-        let keyfile = fs::File::open(filename)
-            .expect("cannot open private key file");
+        let keyfile = fs::File::open(filename).expect("cannot open private key file");
         let mut reader = BufReader::new(keyfile);
         rustls::internal::pemfile::pkcs8_private_keys(&mut reader)
             .expect("file contains invalid pkcs8 private key (encrypted keys not supported)")

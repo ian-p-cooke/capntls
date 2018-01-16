@@ -2,7 +2,7 @@ use std::io::BufReader;
 use std::fs;
 use std::sync::Arc;
 
-use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use echo_capnp::echo;
 use capnp::capability::Promise;
 
@@ -36,7 +36,10 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
     let mut pem = BufReader::new(fs::File::open("test-ca/rsa/ca.cert").unwrap());
     let mut config = ClientConfig::new();
     config.root_store.add_pem_file(&mut pem).unwrap();
-    config.set_single_client_cert(::load_certs("test-ca/rsa/client.cert"), ::load_private_key("test-ca/rsa/client.key"));    
+    config.set_single_client_cert(
+        ::load_certs("test-ca/rsa/client.cert"),
+        ::load_private_key("test-ca/rsa/client.key"),
+    );
     let config = Arc::new(config);
 
     let domain = webpki::DNSNameRef::try_from_ascii_str("localhost").unwrap();

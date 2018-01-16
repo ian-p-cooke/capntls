@@ -10,7 +10,7 @@ pub mod echo_capnp {
 }
 
 pub mod server {
-    use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+    use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
     use futures::{Future, Stream};
     use tokio_io::AsyncRead;
     use echo_capnp::echo;
@@ -71,7 +71,7 @@ pub mod server {
 }
 
 pub mod client {
-    use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+    use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
     use echo_capnp::echo;
     use capnp::capability::Promise;
 
