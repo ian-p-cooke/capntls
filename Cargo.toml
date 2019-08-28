@@ -5,15 +5,15 @@ authors = ["Ian P. Cooke <ipc@informatic.io>"]
 build = "build.rs"
 
 [build-dependencies]
-capnpc = "^0.8"
+capnpc = "^0.10"
 
 [dependencies]
 futures = "^0.1"
 tokio-core = "^0.1"
 tokio-io = "^0.1"
-webpki = "0.18.0-alpha"
+webpki = "^0.21"
 rustls = "*"
 tokio-rustls = "*"
-openssl = { git = "https://github.com/ian-p-cooke/rust-openssl" }
-capnp = "^0.8"
-capnp-rpc = { git = "https://github.com/capnproto/capnp-rpc-rust" }
+openssl = "*"
+capnp = "^0.10"
+capnp-rpc = "^0.10"

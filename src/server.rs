@@ -7,7 +7,10 @@ use echo_capnp::echo;
 
 use rustls::{RootCertStore, ServerConfig, Session};
 use rustls::AllowAnyAuthenticatedClient;
-use tokio_rustls::{ServerConfigExt, TlsStream};
+use tokio_rustls::{
+    TlsAcceptor,
+    server::TlsStream,
+};
 
 use openssl::x509::X509;
 
@@ -29,7 +32,7 @@ impl echo::Server for Echo {
     }
 }
 
-fn get_email_from_stream<I, S: Session>(stream: &TlsStream<I, S>) -> Option<String> {
+fn get_email_from_stream<IO>(stream: &TlsStream<IO>) -> Option<String> {
     let (_, session) = stream.get_ref();
     if let Some(certs) = session.get_peer_certificates() {
         for cert in certs {
@@ -72,14 +75,14 @@ pub fn main() {
     let client_auth = AllowAnyAuthenticatedClient::new(client_auth_roots);
 
     let mut config = ServerConfig::new(client_auth);
-    config.set_single_cert(roots, ::load_private_key("test-ca/rsa/end.key"));
-    let config = Arc::new(config);
+    config.set_single_cert(roots, ::load_private_key("test-ca/rsa/end.key")).unwrap();
+    let config = TlsAcceptor::from(Arc::new(config));
 
     let connections = socket.incoming();
 
     let tls_handshake = connections.map(|(socket, _addr)| {
         socket.set_nodelay(true).unwrap();
-        config.accept_async(socket)
+        config.accept(socket)
     });
 
     let server = tls_handshake.map(|acceptor| {
@@ -89,7 +92,7 @@ pub fn main() {
             let echo = Echo {
                 email: email.unwrap(),
             };
-            let echo_client = echo::ToClient::new(echo).from_server::<::capnp_rpc::Server>();
+            let echo_client = echo::ToClient::new(echo).into_client::<::capnp_rpc::Server>();
 
             let (reader, writer) = stream.split();
             let network = twoparty::VatNetwork::new(

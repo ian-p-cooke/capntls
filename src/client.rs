@@ -10,7 +10,7 @@ use futures::Future;
 use tokio_io::AsyncRead;
 
 use rustls::ClientConfig;
-use tokio_rustls::ClientConfigExt;
+use tokio_rustls::TlsConnector;
 
 extern crate webpki;
 
@@ -26,10 +26,10 @@ pub fn main() {
 fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
     use std::net::ToSocketAddrs;
 
-    let mut core = try!(::tokio_core::reactor::Core::new());
+    let mut core = ::tokio_core::reactor::Core::new()?;
     let handle = core.handle();
 
-    let addr = try!(args[2].to_socket_addrs())
+    let addr = args[2].to_socket_addrs()?
         .next()
         .expect("could not parse address");
 
@@ -40,14 +40,14 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         ::load_certs("test-ca/rsa/client.cert"),
         ::load_private_key("test-ca/rsa/client.key"),
     );
-    let config = Arc::new(config);
+    let config = TlsConnector::from(Arc::new(config));
 
     let domain = webpki::DNSNameRef::try_from_ascii_str("localhost").unwrap();
 
     let socket = ::tokio_core::net::TcpStream::connect(&addr, &handle);
     let tls_handshake = socket.and_then(|socket| {
         socket.set_nodelay(true).unwrap();
-        config.connect_async(domain, socket)
+        config.connect(domain, socket)
     });
 
     let stream = core.run(tls_handshake).unwrap();
@@ -66,12 +66,12 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
 
     let mut request = echo_client.echo_request();
     request.get().set_input("hello");
-    try!(core.run(request.send().promise.and_then(|response| {
+    core.run(request.send().promise.and_then(|response| {
         let output = pry!(response.get()).get_output().unwrap();
         println!("{}", output);
         Promise::ok(())
-    })));
+    }))?;
 
-    try!(core.run(rpc_disconnector));
+    core.run(rpc_disconnector)?;
     Ok(())
 }

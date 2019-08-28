@@ -47,7 +47,7 @@ pub mod server {
             .expect("could not parse address");
         let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-        let echo_server = echo::ToClient::new(Echo).from_server::<::capnp_rpc::Server>();
+        let echo_server = echo::ToClient::new(Echo).into_client::<::capnp_rpc::Server>();
 
         let connections = socket.incoming();
         let server = connections.for_each(|(stream, _addr)| {
@@ -91,10 +91,10 @@ pub mod client {
     fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         use std::net::ToSocketAddrs;
 
-        let mut core = try!(::tokio_core::reactor::Core::new());
+        let mut core = ::tokio_core::reactor::Core::new()?;
         let handle = core.handle();
 
-        let addr = try!(args[2].to_socket_addrs())
+        let addr = args[2].to_socket_addrs()?
             .next()
             .expect("could not parse address");
 
@@ -114,11 +114,11 @@ pub mod client {
 
         let mut request = echo_client.echo_request();
         request.get().set_input("hello");
-        try!(core.run(request.send().promise.and_then(|response| {
+        core.run(request.send().promise.and_then(|response| {
             let output = pry!(response.get()).get_output().unwrap();
             println!("{}", output);
             Promise::ok(())
-        })));
+        }))?;
         Ok(())
     }
 }
